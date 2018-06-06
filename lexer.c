@@ -1,5 +1,36 @@
 #include "lexer.h"
 
+/* ENUMS */
+enum Tags{
+	TYPEDEF, STRUCT, ENUM, EXTERN, CONST, FUNCTION
+};
+
+/* STRUCTS */
+struct Token{
+	int tag;
+	char *lexeme;
+};
+
+/* CONSTS */
+const char *keywords[] = {
+	"typedef", "struct", "enum", "extern", "const"
+};
+
+/* PRIVATE FUNCTIONS */
+int lexeme_type(const char *lexeme)
+{
+	int i, tag;
+	
+	tag = FUNCTION;
+	for (i = 0; i < length(keywords); i++){
+		if (!strcmp(lexeme, keywords[i])){
+			tag = i; break;
+		}
+	}
+	return tag;
+}
+
+/* PUBLIC FUNCTIONS */
 Token *new_token(int tag, char *lexeme)
 {
 	Token *tok;
@@ -17,11 +48,22 @@ Token *delete_token(Token *tok)
 	free(tok);
 	return NULL;
 }
+int get_tag(const Token *tok)
+{
+	return tok->tag;
+}
+char *get_lexeme(const Token *tok)
+{
+	char *lexeme;
+
+	lexeme = (char *) malloc(strlen(tok->lexeme));
+	strcpy(lexeme, tok->lexeme);
+	return lexeme;
+}
 Token *next_token(FILE *stream)
 {
 	Token *tok;
-	size_t buflen;
-	char buf[BUFSIZ], *lexeme;
+	char buf[BUFSIZ], temp[BUFSIZ];
 	
 	tok = NULL;
 	while (1){
@@ -29,18 +71,9 @@ Token *next_token(FILE *stream)
 		if (tok) break;
 
 		fgets(buf, BUFSIZ, stream);
-		buflen = strlen(buf) + 1;
-		if(*buf == '/'){
-			lexeme = (char *) malloc(buflen);
-			strcpy(lexeme, buf);
-			*(lexeme + buflen - 2) = '\0';
-			tok = new_token(COMMENT, lexeme);
-		}
-		if(isalnum(*buf)){
-			lexeme = (char *) malloc(buflen);
-			strcpy(lexeme, buf);
-			*(lexeme + buflen - 2) = '\0';
-			tok = strchr(buf, '(') ? new_token(FUNCTION, lexeme) : new_token(VARIABLE, lexeme);	
+		if (sscanf(buf, "%[A-Za-z]", temp)){
+			*(buf + strlen(buf)- 2) = '\0';
+			tok = new_token(lexeme_type(temp), buf);
 		}
 	}
 	return tok;
